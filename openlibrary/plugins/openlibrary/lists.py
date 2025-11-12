@@ -67,7 +67,14 @@ class ListRecord:
 
     @staticmethod
     def _flatten_seeds(
-        seeds: ThingReferenceDict | AnnotatedSeedDict | str | list[Seed] | tuple[Seed, ...] | None,
+        seeds: (
+            ThingReferenceDict
+            | AnnotatedSeedDict
+            | str
+            | list[Seed]
+            | tuple[Seed, ...]
+            | None
+        ),
     ):
         if seeds is None:
             return

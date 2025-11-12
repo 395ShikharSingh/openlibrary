@@ -5,7 +5,10 @@
         Please include a header row. Supported columns include: "Title", "Author", "ISBN".
       </p>
 
-      <select v-model="selectedValue" class="sampleBar">
+      <select
+        v-model="selectedValue"
+        class="sampleBar"
+      >
         <option
           v-for="sample in sampleData"
           :key="sample.source"
@@ -24,7 +27,9 @@
 
       <div class="progressCarousel">
         <div class="progressCard">
-          <div class="numeral">1</div>
+          <div class="numeral">
+            1
+          </div>
           <div class="info">
             <div class="heading">
               <h3>Extract Books</h3>
@@ -76,7 +81,9 @@
           class="progressCard"
           :class="{ progressCardDisabled: matchBooksDisabled }"
         >
-          <div class="numeral">2</div>
+          <div class="numeral">
+            2
+          </div>
           <div class="info">
             <div class="heading">
               <h3>Match Books</h3>
@@ -111,10 +118,14 @@
           class="progressCard"
           :class="{ progressCardDisabled: thirdStepLocked }"
         >
-          <div class="numeral">3</div>
+          <div class="numeral">
+            3
+          </div>
           <div class="info">
             <div class="heading">
-              <h3 class="heading">Save your Matches</h3>
+              <h3 class="heading">
+                Save your Matches
+              </h3>
               <p class="heading">
                 <i>
                   Now that you've found your books, why not save them to your reading log? Or a
@@ -158,7 +169,10 @@
                     height="12"
                     viewBox="0 0 24 24"
                   >
-                    <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                    <path
+                      d="M7 10l5 5 5-5z"
+                      fill="currentColor"
+                    />
                   </svg>
                 </div>
 
@@ -178,10 +192,16 @@
                 </div>
               </div>
 
-              <p v-if="listOptionsLoading" class="list-message">
+              <p
+                v-if="listOptionsLoading"
+                class="list-message"
+              >
                 Loading your lists...
               </p>
-              <p v-else-if="listOptionsError" class="list-message list-message-error">
+              <p
+                v-else-if="listOptionsError"
+                class="list-message list-message-error"
+              >
                 {{ listOptionsError }}
               </p>
               <p
@@ -204,7 +224,10 @@
     </div>
 
     <div v-if="bulkSearchState.errorMessage">
-      <p v-for="error in bulkSearchState.errorMessage" :key="error">
+      <p
+        v-for="error in bulkSearchState.errorMessage"
+        :key="error"
+      >
         {{ error }}
       </p>
     </div>
@@ -219,336 +242,336 @@ import { BulkSearchState } from '../utils/classes.js'
 import { buildSearchUrl } from '../utils/searchUtils.js'
 
 export default {
-  props: {
-    bulkSearchState: BulkSearchState
-  },
+    props: {
+        bulkSearchState: BulkSearchState
+    },
 
-  data() {
-    return {
-      selectedValue: '',
-      showPassword: true,
-      sampleData,
-      loadingExtractedBooks: false,
-      loadingMatchedBooks: false,
-      matchBooksDisabled: true,
-      createListDisabled: true,
-      userLists: [],
-      listOptionsLoading: false,
-      listOptionsError: '',
-      savingMatches: false,
-      selectedListAction: 'create',
-      selectedExistingListKey: '',
-      restoredSelection: false,
-      dropdownOpen: false,
-      selectedListLabel: ''
+    data() {
+        return {
+            selectedValue: '',
+            showPassword: true,
+            sampleData,
+            loadingExtractedBooks: false,
+            loadingMatchedBooks: false,
+            matchBooksDisabled: true,
+            createListDisabled: true,
+            userLists: [],
+            listOptionsLoading: false,
+            listOptionsError: '',
+            savingMatches: false,
+            selectedListAction: 'create',
+            selectedExistingListKey: '',
+            restoredSelection: false,
+            dropdownOpen: false,
+            selectedListLabel: ''
+        }
+    },
+
+    computed: {
+        showApiKey() {
+            if (this.bulkSearchState.activeExtractor) return 'model' in this.bulkSearchState.activeExtractor
+            return false
+        },
+
+        extractBooksText() {
+            return this.loadingExtractedBooks ? 'Loading...' : 'Extract Books'
+        },
+
+        matchBooksText() {
+            return this.loadingMatchedBooks ? 'Loading...' : 'Match Books'
+        },
+
+        showColumnHint() {
+            if (this.bulkSearchState.activeExtractor) return this.bulkSearchState.activeExtractor.name === 'table_extractor'
+            return false
+        },
+
+        saveButtonDisabled() {
+            if (this.savingMatches) return true
+            if (this.selectedListAction === 'existing') return this.matchBooksDisabled || !this.selectedExistingListKey
+            return this.createListDisabled || this.matchBooksDisabled
+        },
+
+        saveButtonText() {
+            if (this.savingMatches) return 'Saving...'
+            return this.selectedListAction === 'existing' ? 'Add to List' : 'Create List'
+        },
+
+        thirdStepLocked() {
+            return this.matchBooksDisabled || this.createListDisabled
+        },
+
+        formattedUserLists() {
+            return this.userLists
+                .map((list) => {
+                    const name = (list.name || '').trim() || 'Untitled list'
+                    const count = Array.isArray(list.list_items) ? list.list_items.length : null
+                    const owner = list.owner?.displayname
+                    const countLabel = typeof count === 'number' ? `${count} item${count === 1 ? '' : 's'}` : null
+                    const tooltipParts = [name]
+
+                    if (countLabel) tooltipParts.push(countLabel)
+                    if (owner) tooltipParts.push(`Owner: ${owner}`)
+
+                    return {
+                        key: list.key,
+                        value: list.add_url || `${list.key}/add`,
+                        label: countLabel ? `${name} (${countLabel})` : name,
+                        tooltip: tooltipParts.join(' | ')
+                    }
+                })
+                .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))
+        },
+
+        listPlaceholder() {
+            if (this.listOptionsLoading) return 'Loading your lists...'
+            if (!this.formattedUserLists.length) return 'No lists available'
+            return 'Select a list'
+        },
+
+        listMenuDisabled() {
+            return this.thirdStepLocked || this.listOptionsLoading || !this.formattedUserLists.length
+        }
+    },
+
+    watch: {
+        selectedValue(newValue) {
+            if (newValue !== '') this.bulkSearchState.inputText = newValue
+        },
+
+        selectedListAction(newAction) {
+            if (newAction !== 'existing') {
+                this.selectedExistingListKey = ''
+                this.listOptionsError = ''
+            }
+        },
+
+        selectedExistingListKey(newValue) {
+            this.$emit('list-selected', newValue)
+            this.persistSelectedList(newValue)
+        }
+    },
+
+    mounted() {
+        this.loadUserLists()
+    },
+
+    methods: {
+        toggleDropdown() {
+            if (this.listMenuDisabled) return
+            this.dropdownOpen = !this.dropdownOpen
+        },
+
+        selectList(value, label) {
+            this.selectedExistingListKey = value
+            this.selectedListLabel = label
+            this.dropdownOpen = false
+            this.$emit('list-selected', value)
+        },
+
+        clearExtractionErrors() {
+            if (!Array.isArray(this.bulkSearchState.errorMessage)) {
+                this.$set(this.bulkSearchState, 'errorMessage', [])
+                return
+            }
+            this.bulkSearchState.errorMessage = []
+        },
+
+        async extractBooks() {
+            if (this.loadingExtractedBooks) return
+            const extractor = this.bulkSearchState.activeExtractor
+            if (!extractor) return
+
+            this.clearExtractionErrors()
+            this.loadingExtractedBooks = true
+            this.matchBooksDisabled = true
+            this.createListDisabled = true
+
+            try {
+                const extractedData = await extractor.run(
+                    this.bulkSearchState.extractionOptions,
+                    this.bulkSearchState.inputText
+                )
+
+                this.bulkSearchState.matchedBooks = extractedData
+
+                if (!extractedData.length) {
+                    this.bulkSearchState.errorMessage = ['No books detected. Try adjusting your input.']
+                    return
+                }
+
+                this.matchBooksDisabled = false
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unable to extract books.'
+                this.bulkSearchState.errorMessage = [message]
+            } finally {
+                this.loadingExtractedBooks = false
+            }
+        },
+
+        async matchBooks() {
+            if (this.loadingMatchedBooks || !this.bulkSearchState.matchedBooks.length) {
+                if (!this.bulkSearchState.matchedBooks.length) {
+                    this.bulkSearchState.errorMessage = ['Extract books before matching.']
+                }
+                return
+            }
+
+            this.clearExtractionErrors()
+
+            const fetchSolrBook = async (book, matchOptions) => {
+                try {
+                    const response = await fetch(buildSearchUrl(book, matchOptions, true))
+                    return await response.json()
+                } catch (error) {
+                    return undefined
+                }
+            }
+
+            this.loadingMatchedBooks = true
+
+            try {
+                const results = await Promise.all(
+                    this.bulkSearchState.matchedBooks.map(async (bookMatch) => {
+                        const solrDocs = await fetchSolrBook(bookMatch.extractedBook, this.bulkSearchState.matchOptions)
+                        bookMatch.solrDocs = solrDocs || { docs: [] }
+                        return bookMatch
+                    })
+                )
+
+                this.matchBooksDisabled = !this.bulkSearchState.matchedBooks.length
+                const hasResults = results.some((result) => result?.solrDocs?.docs?.length)
+                this.createListDisabled = !this.bulkSearchState.seedKeys.length
+
+                if (!hasResults) {
+                    this.bulkSearchState.errorMessage = ['Unable to find matches on Open Library.']
+                }
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unable to match books.'
+                this.bulkSearchState.errorMessage = [message]
+            } finally {
+                this.loadingMatchedBooks = false
+            }
+        },
+
+        async loadUserLists() {
+            this.listOptionsLoading = true
+            this.listOptionsError = ''
+
+            try {
+                const response = await fetch('/account/lists/user_lists', {
+                    headers: { Accept: 'application/json' }
+                })
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        this.listOptionsError = 'Sign in to add books to an existing list.'
+                    } else {
+                        this.listOptionsError = 'Unable to load your lists.'
+                    }
+                    this.userLists = []
+                    return
+                }
+
+                const data = await response.json()
+                this.userLists = data.lists || []
+                this.restoreSavedSelection()
+            } catch (error) {
+                this.listOptionsError = 'Unable to load your lists.'
+                this.userLists = []
+            } finally {
+                this.listOptionsLoading = false
+            }
+        },
+
+        async saveMatches() {
+            if (this.savingMatches || this.matchBooksDisabled || this.createListDisabled) return
+
+            if (this.selectedListAction === 'existing') {
+                this.savingMatches = true
+                try {
+                    await this.saveToExistingList()
+                } finally {
+                    this.savingMatches = false
+                }
+            } else {
+                this.savingMatches = true
+                try {
+                    this.saveToNewList()
+                } finally {
+                    this.savingMatches = false
+                }
+            }
+        },
+
+        saveToNewList() {
+            if (!this.bulkSearchState.seedKeys.length) return
+
+            if (this.bulkSearchState.matchedBooks.length < 50) {
+                window.open(this.bulkSearchState.listUrl, '_blank')
+                return
+            }
+
+            const form = document.createElement('form')
+            form.method = 'POST'
+            form.action = '/account/lists/add'
+            form.target = '_blank'
+
+            const seedsInput = document.createElement('input')
+            seedsInput.type = 'hidden'
+            seedsInput.name = 'seeds'
+            seedsInput.value = this.bulkSearchState.listString
+            form.appendChild(seedsInput)
+
+            document.body.appendChild(form)
+            form.submit()
+            document.body.removeChild(form)
+        },
+
+        async saveToExistingList() {
+            if (!this.selectedExistingListKey) {
+                this.listOptionsError = 'Please select a list.'
+                return
+            }
+
+            const seeds = this.bulkSearchState.listString
+
+            if (!seeds) {
+                this.listOptionsError = 'No matched books to add.'
+                return
+            }
+
+            this.listOptionsError = ''
+            const listUrl = `${this.selectedExistingListKey}?seeds=${encodeURIComponent(seeds)}`
+            window.open(listUrl, '_blank')
+        },
+
+        restoreSavedSelection() {
+            if (this.restoredSelection || !this.canUseLocalStorage()) return
+
+            const savedListKey = localStorage.getItem(LIST_KEY_STORAGE_KEY)
+            if (savedListKey && this.formattedUserLists.some((list) => list.value === savedListKey)) {
+                this.selectedExistingListKey = savedListKey
+            }
+
+            this.restoredSelection = true
+        },
+
+        persistSelectedList(listKey) {
+            if (!this.canUseLocalStorage()) return
+
+            if (!listKey) {
+                localStorage.removeItem(LIST_KEY_STORAGE_KEY)
+                return
+            }
+
+            localStorage.setItem(LIST_KEY_STORAGE_KEY, listKey)
+        },
+
+        canUseLocalStorage() {
+            return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+        }
     }
-  },
-
-  computed: {
-    showApiKey() {
-      if (this.bulkSearchState.activeExtractor) return 'model' in this.bulkSearchState.activeExtractor
-      return false
-    },
-
-    extractBooksText() {
-      return this.loadingExtractedBooks ? 'Loading...' : 'Extract Books'
-    },
-
-    matchBooksText() {
-      return this.loadingMatchedBooks ? 'Loading...' : 'Match Books'
-    },
-
-    showColumnHint() {
-      if (this.bulkSearchState.activeExtractor) return this.bulkSearchState.activeExtractor.name === 'table_extractor'
-      return false
-    },
-
-    saveButtonDisabled() {
-      if (this.savingMatches) return true
-      if (this.selectedListAction === 'existing') return this.matchBooksDisabled || !this.selectedExistingListKey
-      return this.createListDisabled || this.matchBooksDisabled
-    },
-
-    saveButtonText() {
-      if (this.savingMatches) return 'Saving...'
-      return this.selectedListAction === 'existing' ? 'Add to List' : 'Create List'
-    },
-
-    thirdStepLocked() {
-      return this.matchBooksDisabled || this.createListDisabled
-    },
-
-    formattedUserLists() {
-      return this.userLists
-        .map((list) => {
-          const name = (list.name || '').trim() || 'Untitled list'
-          const count = Array.isArray(list.list_items) ? list.list_items.length : null
-          const owner = list.owner?.displayname
-          const countLabel = typeof count === 'number' ? `${count} item${count === 1 ? '' : 's'}` : null
-          const tooltipParts = [name]
-
-          if (countLabel) tooltipParts.push(countLabel)
-          if (owner) tooltipParts.push(`Owner: ${owner}`)
-
-          return {
-            key: list.key,
-            value: list.add_url || `${list.key}/add`,
-            label: countLabel ? `${name} (${countLabel})` : name,
-            tooltip: tooltipParts.join(' | ')
-          }
-        })
-        .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))
-    },
-
-    listPlaceholder() {
-      if (this.listOptionsLoading) return 'Loading your lists...'
-      if (!this.formattedUserLists.length) return 'No lists available'
-      return 'Select a list'
-    },
-
-    listMenuDisabled() {
-      return this.thirdStepLocked || this.listOptionsLoading || !this.formattedUserLists.length
-    }
-  },
-
-  watch: {
-    selectedValue(newValue) {
-      if (newValue !== '') this.bulkSearchState.inputText = newValue
-    },
-
-    selectedListAction(newAction) {
-      if (newAction !== 'existing') {
-        this.selectedExistingListKey = ''
-        this.listOptionsError = ''
-      }
-    },
-
-    selectedExistingListKey(newValue) {
-      this.$emit('list-selected', newValue)
-      this.persistSelectedList(newValue)
-    }
-  },
-
-  mounted() {
-    this.loadUserLists()
-  },
-
-  methods: {
-    toggleDropdown() {
-      if (this.listMenuDisabled) return
-      this.dropdownOpen = !this.dropdownOpen
-    },
-
-    selectList(value, label) {
-      this.selectedExistingListKey = value
-      this.selectedListLabel = label
-      this.dropdownOpen = false
-      this.$emit('list-selected', value)
-    },
-
-    clearExtractionErrors() {
-      if (!Array.isArray(this.bulkSearchState.errorMessage)) {
-        this.$set(this.bulkSearchState, 'errorMessage', [])
-        return
-      }
-      this.bulkSearchState.errorMessage = []
-    },
-
-    async extractBooks() {
-      if (this.loadingExtractedBooks) return
-      const extractor = this.bulkSearchState.activeExtractor
-      if (!extractor) return
-
-      this.clearExtractionErrors()
-      this.loadingExtractedBooks = true
-      this.matchBooksDisabled = true
-      this.createListDisabled = true
-
-      try {
-        const extractedData = await extractor.run(
-          this.bulkSearchState.extractionOptions,
-          this.bulkSearchState.inputText
-        )
-
-        this.bulkSearchState.matchedBooks = extractedData
-
-        if (!extractedData.length) {
-          this.bulkSearchState.errorMessage = ['No books detected. Try adjusting your input.']
-          return
-        }
-
-        this.matchBooksDisabled = false
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unable to extract books.'
-        this.bulkSearchState.errorMessage = [message]
-      } finally {
-        this.loadingExtractedBooks = false
-      }
-    },
-
-    async matchBooks() {
-      if (this.loadingMatchedBooks || !this.bulkSearchState.matchedBooks.length) {
-        if (!this.bulkSearchState.matchedBooks.length) {
-          this.bulkSearchState.errorMessage = ['Extract books before matching.']
-        }
-        return
-      }
-
-      this.clearExtractionErrors()
-
-      const fetchSolrBook = async (book, matchOptions) => {
-        try {
-          const response = await fetch(buildSearchUrl(book, matchOptions, true))
-          return await response.json()
-        } catch (error) {
-          return undefined
-        }
-      }
-
-      this.loadingMatchedBooks = true
-
-      try {
-        const results = await Promise.all(
-          this.bulkSearchState.matchedBooks.map(async (bookMatch) => {
-            const solrDocs = await fetchSolrBook(bookMatch.extractedBook, this.bulkSearchState.matchOptions)
-            bookMatch.solrDocs = solrDocs || { docs: [] }
-            return bookMatch
-          })
-        )
-
-        this.matchBooksDisabled = !this.bulkSearchState.matchedBooks.length
-        const hasResults = results.some((result) => result?.solrDocs?.docs?.length)
-        this.createListDisabled = !this.bulkSearchState.seedKeys.length
-
-        if (!hasResults) {
-          this.bulkSearchState.errorMessage = ['Unable to find matches on Open Library.']
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unable to match books.'
-        this.bulkSearchState.errorMessage = [message]
-      } finally {
-        this.loadingMatchedBooks = false
-      }
-    },
-
-    async loadUserLists() {
-      this.listOptionsLoading = true
-      this.listOptionsError = ''
-
-      try {
-        const response = await fetch('/account/lists/user_lists', {
-          headers: { Accept: 'application/json' }
-        })
-
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            this.listOptionsError = 'Sign in to add books to an existing list.'
-          } else {
-            this.listOptionsError = 'Unable to load your lists.'
-          }
-          this.userLists = []
-          return
-        }
-
-        const data = await response.json()
-        this.userLists = data.lists || []
-        this.restoreSavedSelection()
-      } catch (error) {
-        this.listOptionsError = 'Unable to load your lists.'
-        this.userLists = []
-      } finally {
-        this.listOptionsLoading = false
-      }
-    },
-
-    async saveMatches() {
-      if (this.savingMatches || this.matchBooksDisabled || this.createListDisabled) return
-
-      if (this.selectedListAction === 'existing') {
-        this.savingMatches = true
-        try {
-          await this.saveToExistingList()
-        } finally {
-          this.savingMatches = false
-        }
-      } else {
-        this.savingMatches = true
-        try {
-          this.saveToNewList()
-        } finally {
-          this.savingMatches = false
-        }
-      }
-    },
-
-    saveToNewList() {
-      if (!this.bulkSearchState.seedKeys.length) return
-
-      if (this.bulkSearchState.matchedBooks.length < 50) {
-        window.open(this.bulkSearchState.listUrl, '_blank')
-        return
-      }
-
-      const form = document.createElement('form')
-      form.method = 'POST'
-      form.action = '/account/lists/add'
-      form.target = '_blank'
-
-      const seedsInput = document.createElement('input')
-      seedsInput.type = 'hidden'
-      seedsInput.name = 'seeds'
-      seedsInput.value = this.bulkSearchState.listString
-      form.appendChild(seedsInput)
-
-      document.body.appendChild(form)
-      form.submit()
-      document.body.removeChild(form)
-    },
-
-    async saveToExistingList() {
-      if (!this.selectedExistingListKey) {
-        this.listOptionsError = 'Please select a list.'
-        return
-      }
-
-      const seeds = this.bulkSearchState.listString
-
-      if (!seeds) {
-        this.listOptionsError = 'No matched books to add.'
-        return
-      }
-
-      this.listOptionsError = ''
-      const listUrl = `${this.selectedExistingListKey}?seeds=${encodeURIComponent(seeds)}`
-      window.open(listUrl, '_blank')
-    },
-
-    restoreSavedSelection() {
-      if (this.restoredSelection || !this.canUseLocalStorage()) return
-
-      const savedListKey = localStorage.getItem(LIST_KEY_STORAGE_KEY)
-      if (savedListKey && this.formattedUserLists.some((list) => list.value === savedListKey)) {
-        this.selectedExistingListKey = savedListKey
-      }
-
-      this.restoredSelection = true
-    },
-
-    persistSelectedList(listKey) {
-      if (!this.canUseLocalStorage()) return
-
-      if (!listKey) {
-        localStorage.removeItem(LIST_KEY_STORAGE_KEY)
-        return
-      }
-
-      localStorage.setItem(LIST_KEY_STORAGE_KEY, listKey)
-    },
-
-    canUseLocalStorage() {
-      return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
-    }
-  }
 }
 </script>
 
