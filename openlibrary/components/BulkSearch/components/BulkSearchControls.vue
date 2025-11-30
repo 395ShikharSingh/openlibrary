@@ -17,14 +17,11 @@
           {{ sample.name }}
         </option>
       </select>
-
       <textarea
         v-model="bulkSearchState.inputText"
         placeholder="Enter your books..."
       />
-
       <br>
-
       <div class="progressCarousel">
         <div class="progressCard">
           <div class="numeral">
@@ -32,32 +29,43 @@
           </div>
           <div class="info">
             <div class="heading">
-              <h3>Extract Books</h3>
-              <p>
-                <i>
-                  How to convert your books above into structured information, like title and
-                  author.
-                </i>
-              </p>
+              <h3> Extract Books</h3>
+              <p><i>How to convert your books above into structured information, like title and author.</i></p>
             </div>
-
-            <label>
-              <strong>Extractor</strong>
-              <br>
-              <select v-model="bulkSearchState._activeExtractorIndex">
-                <option
+            <label><strong> Extractor</strong> <br>
+              <div
+                class="custom-dropdown-trigger"
+                :class="{ open: extractorDropdownOpen }"
+                @click="toggleExtractorDropdown"
+              >
+                <span>{{ bulkSearchState.extractors[bulkSearchState._activeExtractorIndex].label }}</span>
+                <svg
+                  class="arrow"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                </svg>
+              </div>
+              <div
+                v-if="extractorDropdownOpen"
+                class="custom-dropdown-menu"
+                :style="extractorDropdownStyle"
+              >
+                <div
                   v-for="(extractor, index) in bulkSearchState.extractors"
                   :key="index"
-                  :value="index"
+                  class="dropdown-item"
+                  @click="selectExtractor(index)"
                 >
                   {{ extractor.label }}
-                </option>
-              </select>
+                </div>
+              </div>
             </label>
 
-            <label v-if="showApiKey">
-              <strong>OpenAI API Key</strong>
-              <br>
+            <label v-if="showApiKey"><strong>OpenAI API Key</strong> <br>
               <input
                 v-model="bulkSearchState.extractionOptions.openaiApiKey"
                 class="api-key-bar"
@@ -68,6 +76,7 @@
               >
             </label>
 
+
             <button
               :disabled="loadingExtractedBooks"
               @click="extractBooks"
@@ -76,10 +85,9 @@
             </button>
           </div>
         </div>
-
         <div
           class="progressCard"
-          :class="{ progressCardDisabled: matchBooksDisabled }"
+          :class="{ progressCardDisabled: matchBooksDisabled}"
         >
           <div class="numeral">
             2
@@ -87,24 +95,15 @@
           <div class="info">
             <div class="heading">
               <h3>Match Books</h3>
-              <p>
-                <i>
-                  Once structured data has been found, it's time to match it to a book in
-                  OpenLibrary!
-                </i>
-              </p>
+              <p><i>Once structured data has been found, it's time to match it to a book in OpenLibrary!</i></p>
             </div>
-
-            <label>
-              <strong>Options</strong>
-              <br>
+            <label><strong>Options</strong> <br>
               <input
                 v-model="bulkSearchState.matchOptions.includeAuthor"
                 type="checkbox"
-              >
-              Use author in search query
+              > Use author in
+              search query
             </label>
-
             <button
               :disabled="loadingMatchedBooks || matchBooksDisabled"
               @click="matchBooks"
@@ -113,10 +112,9 @@
             </button>
           </div>
         </div>
-
         <div
           class="progressCard"
-          :class="{ progressCardDisabled: thirdStepLocked }"
+          :class="{ progressCardDisabled: createListDisabled }"
         >
           <div class="numeral">
             3
@@ -127,41 +125,19 @@
                 Save your Matches
               </h3>
               <p class="heading">
-                <i>
-                  Now that you've found your books, why not save them to your reading log? Or a
-                  list?
-                </i>
+                <i> Now that you've found your books, why not save them to your reading log? Or a list?</i>
               </p>
             </div>
 
             <div class="list-actions">
               <label>
                 <strong>Save to</strong>
-                <select
-                  v-model="selectedListAction"
-                  :disabled="thirdStepLocked"
-                >
-                  <option value="create">Create new list</option>
-                  <option
-                    value="existing"
-                    :disabled="!userLists.length"
-                  >
-                    Add to existing list
-                  </option>
-                </select>
-              </label>
-
-              <div
-                v-if="selectedListAction === 'existing'"
-                class="list-dropdown-wrapper"
-              >
-                <strong>Select a list</strong>
                 <div
                   class="custom-dropdown-trigger"
-                  :class="{ open: dropdownOpen }"
-                  @click="toggleDropdown"
+                  :class="{ open: listDropdownOpen }"
+                  @click="toggleListDropdown"
                 >
-                  <span>{{ selectedListLabel || listPlaceholder }}</span>
+                  <span>{{ selectedListLabel }}</span>
                   <svg
                     class="arrow"
                     xmlns="http://www.w3.org/2000/svg"
@@ -169,46 +145,39 @@
                     height="12"
                     viewBox="0 0 24 24"
                   >
-                    <path
-                      d="M7 10l5 5 5-5z"
-                      fill="currentColor"
-                    />
+                    <path d="M7 10l5 5 5-5z" fill="currentColor" />
                   </svg>
                 </div>
 
                 <div
-                  v-if="dropdownOpen"
+                  v-if="listDropdownOpen"
                   class="custom-dropdown-menu"
+                  :style="listDropdownStyle"
                 >
+                  <div
+                    class="dropdown-item"
+                    @click="selectOption('create', 'Create a new list')"
+                  >
+                    Create a new list
+                  </div>
+                  <div class="dropdown-divider" />
                   <div
                     v-for="list in formattedUserLists"
                     :key="list.key"
                     class="dropdown-item"
                     :title="list.tooltip"
-                    @click="selectList(list.value, list.label)"
+                    @click="selectOption(list.value, list.label)"
                   >
-                    <span class="list-name">{{ list.label }}</span>
+                    {{ list.label }}
                   </div>
                 </div>
-              </div>
+              </label>
 
-              <p
-                v-if="listOptionsLoading"
-                class="list-message"
-              >
+              <p v-if="listOptionsLoading" class="list-message">
                 Loading your lists...
               </p>
-              <p
-                v-else-if="listOptionsError"
-                class="list-message list-message-error"
-              >
+              <p v-else-if="listOptionsError" class="list-message list-message-error">
                 {{ listOptionsError }}
-              </p>
-              <p
-                v-else-if="selectedListAction === 'existing' && !userLists.length"
-                class="list-message list-message-hint"
-              >
-                You don't have any lists yet. Create one first to save matches here.
               </p>
 
               <button
@@ -222,7 +191,6 @@
         </div>
       </div>
     </div>
-
     <div v-if="bulkSearchState.errorMessage">
       <p
         v-for="error in bulkSearchState.errorMessage"
@@ -235,22 +203,20 @@
 </template>
 
 <script>
-const LIST_KEY_STORAGE_KEY = 'bulkSearch.selectedExistingListKey'
-
-import { sampleData } from '../utils/samples.js'
-import { BulkSearchState } from '../utils/classes.js'
+import {sampleData} from '../utils/samples.js';
+import { BulkSearchState} from '../utils/classes.js';
 import { buildSearchUrl } from '../utils/searchUtils.js'
 
 export default {
+    emits: ['list-selected'],
     props: {
         bulkSearchState: BulkSearchState
     },
-
     data() {
         return {
             selectedValue: '',
             showPassword: true,
-            sampleData,
+            sampleData: sampleData,
             loadingExtractedBooks: false,
             loadingMatchedBooks: false,
             matchBooksDisabled: true,
@@ -259,48 +225,41 @@ export default {
             listOptionsLoading: false,
             listOptionsError: '',
             savingMatches: false,
-            selectedListAction: 'create',
-            selectedExistingListKey: '',
+            selectedListTarget: 'create',
             restoredSelection: false,
-            dropdownOpen: false,
-            selectedListLabel: ''
+            listDropdownOpen: false,
+            selectedListLabel: 'Create a new list',
+            listDropdownStyle: {},
+            extractorDropdownOpen: false,
+            extractorDropdownStyle: {}
         }
     },
-
     computed: {
-        showApiKey() {
+        showApiKey(){
             if (this.bulkSearchState.activeExtractor) return 'model' in this.bulkSearchState.activeExtractor
             return false
         },
-
-        extractBooksText() {
-            return this.loadingExtractedBooks ? 'Loading...' : 'Extract Books'
+        extractBooksText(){
+            if (this.loadingExtractedBooks) return 'Loading...'
+            return 'Extract Books'
         },
-
-        matchBooksText() {
-            return this.loadingMatchedBooks ? 'Loading...' : 'Match Books'
+        matchBooksText(){
+            if (this.loadingMatchedBooks) return 'Loading...'
+            return 'Match Books'
         },
-
-        showColumnHint() {
+        showColumnHint(){
             if (this.bulkSearchState.activeExtractor) return this.bulkSearchState.activeExtractor.name === 'table_extractor'
             return false
         },
-
         saveButtonDisabled() {
             if (this.savingMatches) return true
-            if (this.selectedListAction === 'existing') return this.matchBooksDisabled || !this.selectedExistingListKey
-            return this.createListDisabled || this.matchBooksDisabled
+            if (this.selectedListTarget === 'create') return this.createListDisabled
+            return this.matchBooksDisabled || !this.selectedListTarget
         },
-
         saveButtonText() {
             if (this.savingMatches) return 'Saving...'
-            return this.selectedListAction === 'existing' ? 'Add to List' : 'Create List'
+            return this.selectedListTarget === 'create' ? 'Create List' : 'Add to List'
         },
-
-        thirdStepLocked() {
-            return this.matchBooksDisabled || this.createListDisabled
-        },
-
         formattedUserLists() {
             return this.userLists
                 .map((list) => {
@@ -316,144 +275,109 @@ export default {
                     return {
                         key: list.key,
                         value: list.add_url || `${list.key}/add`,
-                        label: countLabel ? `${name} (${countLabel})` : name,
+                        label: name,
                         tooltip: tooltipParts.join(' | ')
                     }
                 })
                 .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))
-        },
-
-        listPlaceholder() {
-            if (this.listOptionsLoading) return 'Loading your lists...'
-            if (!this.formattedUserLists.length) return 'No lists available'
-            return 'Select a list'
-        },
-
-        listMenuDisabled() {
-            return this.thirdStepLocked || this.listOptionsLoading || !this.formattedUserLists.length
         }
     },
-
     watch: {
         selectedValue(newValue) {
-            if (newValue !== '') this.bulkSearchState.inputText = newValue
-        },
-
-        selectedListAction(newAction) {
-            if (newAction !== 'existing') {
-                this.selectedExistingListKey = ''
-                this.listOptionsError = ''
+            if (newValue!==''){
+                this.bulkSearchState.inputText = newValue;
             }
         },
-
-        selectedExistingListKey(newValue) {
+        selectedListTarget(newValue) {
             this.$emit('list-selected', newValue)
-            this.persistSelectedList(newValue)
         }
     },
-
     mounted() {
         this.loadUserLists()
+        document.addEventListener('click', this.closeDropdown)
+        window.addEventListener('scroll', this.closeDropdown, true)
+        window.addEventListener('resize', this.closeDropdown)
     },
-
+    beforeUnmount() {
+        document.removeEventListener('click', this.closeDropdown)
+        window.removeEventListener('scroll', this.closeDropdown, true)
+        window.removeEventListener('resize', this.closeDropdown)
+    },
     methods: {
-        toggleDropdown() {
-            if (this.listMenuDisabled) return
-            this.dropdownOpen = !this.dropdownOpen
+        toggleListDropdown(e) {
+            e.stopPropagation()
+            if (this.listDropdownOpen) {
+                this.closeDropdown()
+                return
+            }
+            this.closeDropdown() // Close others
+            const rect = e.currentTarget.getBoundingClientRect()
+            this.listDropdownStyle = {
+                position: 'fixed',
+                top: `${rect.bottom + 4}px`,
+                left: `${rect.left}px`,
+                width: `${rect.width}px`,
+                zIndex: 9999
+            }
+            this.listDropdownOpen = true
         },
+        toggleExtractorDropdown(e) {
+            e.stopPropagation()
+            if (this.extractorDropdownOpen) {
+                this.closeDropdown()
+                return
+            }
+            this.closeDropdown() // Close others
 
-        selectList(value, label) {
-            this.selectedExistingListKey = value
+            const rect = e.currentTarget.getBoundingClientRect()
+            this.extractorDropdownStyle = {
+                position: 'fixed',
+                top: `${rect.bottom + 4}px`,
+                left: `${rect.left}px`,
+                width: `${rect.width}px`,
+                zIndex: 9999
+            }
+            this.extractorDropdownOpen = true
+        },
+        closeDropdown() {
+            this.listDropdownOpen = false
+            this.extractorDropdownOpen = false
+        },
+        selectExtractor(index) {
+            this.bulkSearchState._activeExtractorIndex = index
+            this.closeDropdown()
+        },
+        selectOption(value, label) {
+            this.selectedListTarget = value
             this.selectedListLabel = label
-            this.dropdownOpen = false
-            this.$emit('list-selected', value)
+            this.closeDropdown()
         },
-
-        clearExtractionErrors() {
-            if (!Array.isArray(this.bulkSearchState.errorMessage)) {
-                this.$set(this.bulkSearchState, 'errorMessage', [])
-                return
-            }
-            this.bulkSearchState.errorMessage = []
+        togglePasswordVisibility(){
+            this.showPassword= !this.showPassword
         },
-
         async extractBooks() {
-            if (this.loadingExtractedBooks) return
-            const extractor = this.bulkSearchState.activeExtractor
-            if (!extractor) return
-
-            this.clearExtractionErrors()
             this.loadingExtractedBooks = true
-            this.matchBooksDisabled = true
-            this.createListDisabled = true
-
-            try {
-                const extractedData = await extractor.run(
-                    this.bulkSearchState.extractionOptions,
-                    this.bulkSearchState.inputText
-                )
-
-                this.bulkSearchState.matchedBooks = extractedData
-
-                if (!extractedData.length) {
-                    this.bulkSearchState.errorMessage = ['No books detected. Try adjusting your input.']
-                    return
-                }
-
-                this.matchBooksDisabled = false
-            } catch (error) {
-                const message = error instanceof Error ? error.message : 'Unable to extract books.'
-                this.bulkSearchState.errorMessage = [message]
-            } finally {
-                this.loadingExtractedBooks = false
-            }
+            const extractedData = await this.bulkSearchState.activeExtractor.run(this.bulkSearchState.extractionOptions, this.bulkSearchState.inputText)
+            this.bulkSearchState.matchedBooks = extractedData
+            this.loadingExtractedBooks = false
+            this.matchBooksDisabled = false;
+            this.createListDisabled = true;
         },
-
         async matchBooks() {
-            if (this.loadingMatchedBooks || !this.bulkSearchState.matchedBooks.length) {
-                if (!this.bulkSearchState.matchedBooks.length) {
-                    this.bulkSearchState.errorMessage = ['Extract books before matching.']
-                }
-                return
-            }
-
-            this.clearExtractionErrors()
-
-            const fetchSolrBook = async (book, matchOptions) => {
+            const fetchSolrBook = async function (book, matchOptions) {
                 try {
-                    const response = await fetch(buildSearchUrl(book, matchOptions, true))
-                    return await response.json()
-                } catch (error) {
-                    return undefined
+                    const data = await fetch(buildSearchUrl(book, matchOptions, true))
+                    return await data.json()
                 }
+                catch (error) {}
             }
-
             this.loadingMatchedBooks = true
-
-            try {
-                const results = await Promise.all(
-                    this.bulkSearchState.matchedBooks.map(async (bookMatch) => {
-                        const solrDocs = await fetchSolrBook(bookMatch.extractedBook, this.bulkSearchState.matchOptions)
-                        bookMatch.solrDocs = solrDocs || { docs: [] }
-                        return bookMatch
-                    })
-                )
-
-                this.matchBooksDisabled = !this.bulkSearchState.matchedBooks.length
-                const hasResults = results.some((result) => result?.solrDocs?.docs?.length)
-                this.createListDisabled = !this.bulkSearchState.seedKeys.length
-
-                if (!hasResults) {
-                    this.bulkSearchState.errorMessage = ['Unable to find matches on Open Library.']
-                }
-            } catch (error) {
-                const message = error instanceof Error ? error.message : 'Unable to match books.'
-                this.bulkSearchState.errorMessage = [message]
-            } finally {
-                this.loadingMatchedBooks = false
+            for (const bookMatch of this.bulkSearchState.matchedBooks) {
+                bookMatch.solrDocs = await fetchSolrBook(bookMatch.extractedBook, this.bulkSearchState.matchOptions)
             }
+            this.loadingMatchedBooks = false
+            this.createListDisabled = false
         },
-
         async loadUserLists() {
             this.listOptionsLoading = true
             this.listOptionsError = ''
@@ -475,7 +399,6 @@ export default {
 
                 const data = await response.json()
                 this.userLists = data.lists || []
-                this.restoreSavedSelection()
             } catch (error) {
                 this.listOptionsError = 'Unable to load your lists.'
                 this.userLists = []
@@ -483,27 +406,25 @@ export default {
                 this.listOptionsLoading = false
             }
         },
-
         async saveMatches() {
             if (this.savingMatches || this.matchBooksDisabled || this.createListDisabled) return
 
-            if (this.selectedListAction === 'existing') {
-                this.savingMatches = true
-                try {
-                    await this.saveToExistingList()
-                } finally {
-                    this.savingMatches = false
-                }
-            } else {
+            if (this.selectedListTarget === 'create') {
                 this.savingMatches = true
                 try {
                     this.saveToNewList()
                 } finally {
                     this.savingMatches = false
                 }
+            } else {
+                this.savingMatches = true
+                try {
+                    await this.saveToExistingList()
+                } finally {
+                    this.savingMatches = false
+                }
             }
         },
-
         saveToNewList() {
             if (!this.bulkSearchState.seedKeys.length) return
 
@@ -527,9 +448,8 @@ export default {
             form.submit()
             document.body.removeChild(form)
         },
-
         async saveToExistingList() {
-            if (!this.selectedExistingListKey) {
+            if (!this.selectedListTarget || this.selectedListTarget === 'create') {
                 this.listOptionsError = 'Please select a list.'
                 return
             }
@@ -542,32 +462,9 @@ export default {
             }
 
             this.listOptionsError = ''
-            const listUrl = `${this.selectedExistingListKey}?seeds=${encodeURIComponent(seeds)}`
+            const listUrl = `${this.selectedListTarget}?seeds=${encodeURIComponent(seeds)}`
             window.open(listUrl, '_blank')
         },
-
-        restoreSavedSelection() {
-            if (this.restoredSelection || !this.canUseLocalStorage()) return
-
-            const savedListKey = localStorage.getItem(LIST_KEY_STORAGE_KEY)
-            if (savedListKey && this.formattedUserLists.some((list) => list.value === savedListKey)) {
-                this.selectedExistingListKey = savedListKey
-            }
-
-            this.restoredSelection = true
-        },
-
-        persistSelectedList(listKey) {
-            if (!this.canUseLocalStorage()) return
-
-            if (!listKey) {
-                localStorage.removeItem(LIST_KEY_STORAGE_KEY)
-                return
-            }
-
-            localStorage.setItem(LIST_KEY_STORAGE_KEY, listKey)
-        },
-
         canUseLocalStorage() {
             return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
         }
@@ -576,110 +473,102 @@ export default {
 </script>
 
 <style lang="less">
-.bulk-search-controls {
-  padding: 20px;
-}
 
+.bulk-search-controls{
+    padding:20px;
+}
 label input {
-  flex: 1;
+    flex: 1;
 }
 
-.sampleBar {
-  float: right;
-  margin-bottom: 5px;
+.sampleBar{
+    float:right;
+    margin-bottom: 5px;
 }
-
 textarea {
-  width: 100%;
-  height: 120px;
-  display: flex;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.progressCarousel {
-  display: flex;
-  overflow-x: auto;
-  overflow-y: visible;
-  column-gap: 10px;
-}
-
-.progressCard {
-  background-color: #c7e3fc;
-  padding: 16px;
-  width: min(450px, 66vw);
-  height: fit-content;
-  border-radius: 30px;
-  display: flex;
-  column-gap: 16px;
-  flex-shrink: 0;
-  overflow: visible;
-
-  .info {
+    width: 100%;
+    height: 120px;
     display: flex;
-    flex-direction: column;
-    row-gap: 10px;
-
-    .heading {
-      color: #0376b8;
-
-      h3 {
-        margin: 0;
-      }
-
-      p {
-        margin: 0;
-      }
-    }
-
-    select {
-      width: 100%;
-    }
-
-    button {
-      background-color: #0376b8;
-      color: white;
-      border-radius: 4px;
-      box-shadow: none;
-      border: none;
-      padding: 0.5rem;
-      transition: background-color 0.2s;
-      min-width: 140px;
-      align-self: center;
-
-      &:not([disabled]) {
-        cursor: pointer;
-
-        &:hover {
-          background-color: #014c78;
+    resize: vertical;
+    box-sizing: border-box;
+}
+.progressCarousel{
+    display:flex;
+    overflow-x:scroll;
+    column-gap:10px;
+}
+.progressCard{
+    background-color:#C7E3FC;
+    padding: 16px;
+    width: min(450px, 66vw);
+    border-radius:30px;
+    display:flex;
+    column-gap:16px;
+    flex-shrink:0;
+    .info{
+        display:flex;
+        flex-direction:column;
+        row-gap:10px;
+        .heading{
+            color:#0376B8;
+            h3{
+                margin:0px;
+            }
+            p{
+                margin:0px;
+            }
         }
-      }
+        select{
+            width: 100%;
+        }
+        button{
+            background-color:#0376B8;
+            color:white;
+            border-radius:4px;
+            box-shadow: none;
+            border:none;
+            padding: 0.5rem;
+            transition:  background-color 0.2s;
+            min-width:140px;
+            align-self:flex-start;
+            &:not([disabled]) {
+                cursor:pointer;
+                &:hover{
+                    background-color:#014c78;
+                }
+            }
+        }
     }
-  }
-
-  .numeral {
-    border-radius: 50%;
-    height: 48px;
-    width: 48px;
-    background-color: white;
-    color: #0376b8;
-    font-weight: bold;
-    justify-content: center;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    font-size: 24px;
-  }
+    .numeral{
+        border-radius: 50%;
+        height:48px;
+        width:48px;
+        background-color:white;
+        color:#0376B8;
+        font-weight:bold;
+        justify-content:center;
+        flex-shrink: 0;
+        display:flex;
+        align-items:center;
+        font-size:24px;
+    }
 }
 
-.progressCardDisabled {
-  opacity: 50%;
+.progressCardDisabled{
+    opacity:50%;
+}
+
+
+.api-key-bar{
+    width:100%;
+    box-sizing:border-box;
 }
 
 .list-actions {
   display: flex;
   flex-direction: column;
   row-gap: 12px;
+  position: relative;
 }
 
 .list-message {
@@ -695,33 +584,20 @@ textarea {
   color: #046c9c;
 }
 
-.list-dropdown-wrapper {
-  display: flex;
-  flex-direction: column;
-  row-gap: 8px;
-  width: 100%;
-}
-
-.api-key-bar {
-  width: 100%;
-  box-sizing: border-box;
-}
-
 .custom-dropdown-trigger {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   background-color: #fff;
   color: #111827;
-  font-size: 1rem;
+  font-size: 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
+  font-family: inherit;
 
   &:hover {
     border-color: #9ca3af;
@@ -742,13 +618,15 @@ textarea {
 }
 
 .custom-dropdown-menu {
+  /* Position is handled dynamically via inline styles */
   background-color: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  margin-top: 8px;
+  /* margin-top removed as we position exactly */
   padding: 0;
-  max-height: 240px;
+  padding: 0;
+  max-height: 160px; /* Approx 4 items */
   overflow-y: auto;
   z-index: 10;
   width: 100%;
@@ -756,12 +634,12 @@ textarea {
 }
 
 .dropdown-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 8px 12px;
   cursor: pointer;
   transition: background 0.15s ease;
-  border-bottom: 1px solid #000;
+  font-size: 14px;
+  color: #111827;
+  border-bottom: 1px solid #eee;
 
   &:hover {
     background-color: #f3f4f6;
@@ -772,12 +650,9 @@ textarea {
   border-bottom: none;
 }
 
-.list-name {
-  font-weight: 500;
-  color: #111827;
-}
-
-.list-icon {
-  display: none;
+.dropdown-divider {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 0;
 }
 </style>
