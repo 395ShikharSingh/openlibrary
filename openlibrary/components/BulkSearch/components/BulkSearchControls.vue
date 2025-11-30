@@ -46,7 +46,10 @@
                   height="12"
                   viewBox="0 0 24 24"
                 >
-                  <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                  <path
+                    d="M7 10l5 5 5-5z"
+                    fill="currentColor"
+                  />
                 </svg>
               </div>
               <div
@@ -145,7 +148,10 @@
                     height="12"
                     viewBox="0 0 24 24"
                   >
-                    <path d="M7 10l5 5 5-5z" fill="currentColor" />
+                    <path
+                      d="M7 10l5 5 5-5z"
+                      fill="currentColor"
+                    />
                   </svg>
                 </div>
 
@@ -173,10 +179,16 @@
                 </div>
               </label>
 
-              <p v-if="listOptionsLoading" class="list-message">
+              <p
+                v-if="listOptionsLoading"
+                class="list-message"
+              >
                 Loading your lists...
               </p>
-              <p v-else-if="listOptionsError" class="list-message list-message-error">
+              <p
+                v-else-if="listOptionsError"
+                class="list-message list-message-error"
+              >
                 {{ listOptionsError }}
               </p>
 
@@ -208,10 +220,10 @@ import { BulkSearchState} from '../utils/classes.js';
 import { buildSearchUrl } from '../utils/searchUtils.js'
 
 export default {
-    emits: ['list-selected'],
     props: {
         bulkSearchState: BulkSearchState
     },
+    emits: ['list-selected'],
     data() {
         return {
             selectedValue: '',
